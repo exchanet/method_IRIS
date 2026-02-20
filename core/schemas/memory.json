@@ -1,0 +1,276 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/exchanet/method_iris/schemas/memory.json",
+  "title": "IRIS Semantic Memory",
+  "description": "Schema for IRIS_MEMORY.json — the active semantic memory that persists across all IRIS cycles. Prevents re-proposing rejected changes, enforces architectural constraints, and tracks intentional technical decisions.",
+  "version": "2.1.0",
+  "type": "object",
+  "required": ["schema_version", "project", "intentional_patterns", "rejected_changes", "architectural_constraints"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of this schema.",
+      "example": "2.1.0"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project name — for display and logging purposes only."
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this file was last modified by IRIS."
+    },
+    "intentional_patterns": {
+      "type": "array",
+      "description": "Patterns in the codebase that look like problems but are conscious, deliberate decisions. IRIS will flag them for review on revisit_on date but will not propose removing them automatically.",
+      "items": {
+        "type": "object",
+        "required": ["id", "pattern", "reason", "decided_on"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^IP-[0-9]{3}$",
+            "description": "Intentional Pattern identifier. Format: IP-NNN.",
+            "example": "IP-001"
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500,
+            "description": "Description of the pattern that looks problematic but is intentional.",
+            "example": "God class UserManager with 25 public methods"
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "pattern": "^[^/\\\\].*$",
+            "not": { "pattern": "\\.\\." },
+            "description": "File path or module where this pattern exists (relative to project root only; no path traversal). Helps IRIS locate it during INGEST.",
+            "example": "src/user/UserManager.ts"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000,
+            "description": "Why this pattern is acceptable or necessary right now.",
+            "example": "Deliberate monolith until v2.0 launch. Splitting would require 3-sprint migration the team cannot afford."
+          },
+          "decided_by": {
+            "type": "string",
+            "description": "Who made this decision (person or role)."
+          },
+          "decided_on": {
+            "type": "string",
+            "format": "date",
+            "description": "When this decision was made."
+          },
+          "revisit_on": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional. Date when IRIS should flag this for re-evaluation. If today >= revisit_on, IRIS presents this to the user for review before IDEATE begins."
+          },
+          "iris_cycle": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "IRIS cycle number when this entry was created."
+          }
+        }
+      }
+    },
+    "rejected_changes": {
+      "type": "array",
+      "description": "Changes that IRIS proposed in a previous cycle and were explicitly rejected by the user or team. IRIS will not re-propose these unless the context changes significantly.",
+      "items": {
+        "type": "object",
+        "required": ["id", "proposed", "rejected_reason", "cycle"],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "not": {
+              "required": ["expires_on"],
+              "properties": { "permanent": { "const": true } }
+            }
+          }
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^RC-[0-9]{3}$",
+            "description": "Rejected Change identifier. Format: RC-NNN.",
+            "example": "RC-001"
+          },
+          "proposed": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500,
+            "description": "What IRIS proposed.",
+            "example": "Migrate to microservices architecture"
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "pattern": "^[^/\\\\].*$",
+            "not": { "pattern": "\\.\\." },
+            "description": "File path, module, or architectural layer this change would have affected (relative to project root only; no path traversal)."
+          },
+          "rejected_reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000,
+            "description": "Why it was rejected.",
+            "example": "Team of 2 people. Microservices overhead not justified until >5 engineers."
+          },
+          "rejected_by": {
+            "type": "string",
+            "description": "Who rejected it."
+          },
+          "cycle": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "IRIS cycle number when this proposal was made and rejected."
+          },
+          "reconsider_when": {
+            "type": "string",
+            "description": "Optional. Condition under which this rejection should be revisited.",
+            "example": "When team size reaches 5+ engineers or monthly active users exceed 100K."
+          },
+          "expires_on": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional. Date when this rejection expires and IRIS can re-propose it."
+          },
+          "permanent": {
+            "type": "boolean",
+            "description": "If true, IRIS will never re-propose this change regardless of context. Defaults to false.",
+            "default": false
+          }
+        }
+      }
+    },
+    "architectural_constraints": {
+      "type": "array",
+      "description": "Hard constraints that IRIS must never violate, regardless of analysis findings. These are non-negotiable project decisions.",
+      "items": {
+        "type": "object",
+        "required": ["id", "constraint"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^AC-[0-9]{3}$",
+            "description": "Architectural Constraint identifier. Format: AC-NNN.",
+            "example": "AC-001"
+          },
+          "constraint": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500,
+            "description": "The constraint as a clear, actionable rule.",
+            "example": "Do not introduce any ORM. All database access must use raw SQL queries."
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Why this constraint exists.",
+            "example": "Performance-critical system where query control is essential. ORM abstractions caused 10x slowdown in audit."
+          },
+          "applies_to": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "pattern": "^[^/\\\\].*$",
+            "not": { "pattern": "\\.\\." },
+            "description": "Which part of the codebase this constraint applies to, relative to project root only (no path traversal). If absent, applies globally.",
+            "example": "src/data/"
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "adr_reference": {
+            "type": "string",
+            "description": "Optional reference to an Architecture Decision Record (ADR) that documents this constraint.",
+            "example": "docs/adr/ADR-003-no-orm.md"
+          }
+        }
+      }
+    },
+    "context_changes": {
+      "type": "array",
+      "description": "Significant context changes that may invalidate previous rejected_changes or intentional_patterns. Entries are added manually by the user (e.g. via /iris:memory or editing the file), not auto-detected by IRIS.",
+      "items": {
+        "type": "object",
+        "required": ["detected_on", "description"],
+        "properties": {
+          "detected_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "What changed that may affect previous decisions.",
+            "example": "Team grew from 2 to 6 engineers. RC-001 (microservices rejection) may now be reconsidered."
+          },
+          "affects": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "IDs of rejected_changes or intentional_patterns this context change may affect.",
+            "example": ["RC-001", "IP-002"]
+          },
+          "iris_cycle": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "2.1.0",
+      "project": "my-api",
+      "last_updated": "2026-02-20",
+      "intentional_patterns": [
+        {
+          "id": "IP-001",
+          "pattern": "God class UserService with 18 public methods",
+          "scope": "src/user/UserService.ts",
+          "reason": "Splitting requires frontend changes we cannot deploy until v2.0 launch in Q2.",
+          "decided_by": "team-lead",
+          "decided_on": "2026-01-15",
+          "revisit_on": "2026-06-01",
+          "iris_cycle": 1
+        }
+      ],
+      "rejected_changes": [
+        {
+          "id": "RC-001",
+          "proposed": "Migrate from raw SQL to Prisma ORM",
+          "scope": "src/db/",
+          "rejected_reason": "Raw SQL queries are 3x faster in our benchmarks. ORM adds abstraction overhead we cannot afford.",
+          "rejected_by": "senior-engineer",
+          "cycle": 2,
+          "permanent": true
+        }
+      ],
+      "architectural_constraints": [
+        {
+          "id": "AC-001",
+          "constraint": "Never introduce an ORM. All DB access must use raw parameterized queries via the db() helper.",
+          "reason": "Performance-critical system. See benchmark results in docs/benchmarks/orm-vs-raw.md.",
+          "applies_to": "src/",
+          "created_on": "2026-01-10",
+          "adr_reference": "docs/adr/ADR-003-no-orm.md"
+        }
+      ],
+      "context_changes": []
+    }
+  ]
+}

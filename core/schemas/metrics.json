@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/exchanet/method_iris/schemas/metrics.json",
+  "title": "IRIS Core Metrics Definitions",
+  "description": "Mathematical definitions, formulas, and thresholds for all IRIS quality metrics. All metrics are language-agnostic and apply to any codebase.",
+  "version": "2.1.0",
+  "metrics": {
+    "defect_density": {
+      "display_name": "Defect Density",
+      "description": "Number of defects identified per 1000 lines of code. Measures the density of problems in the codebase.",
+      "formula": "(total_defects_found / lines_of_code_analyzed) * 1000",
+      "unit": "defects per 1000 LOC",
+      "collection_method": "Static analysis + manual code review. Count: bugs, security vulnerabilities, logic errors, crashes, data corruption risks.",
+      "collection_frequency": "per_iteration",
+      "thresholds": {
+        "excellent": { "max": 1.0, "label": "Excellent", "action": "Maintain current practices" },
+        "good": { "min": 1.0, "max": 5.0, "label": "Good", "action": "Continue improvement iterations" },
+        "acceptable": { "min": 5.0, "max": 10.0, "label": "Acceptable", "action": "Prioritize defect resolution in next cycle" },
+        "poor": { "min": 10.0, "label": "Poor", "action": "Immediate action required — escalate priority" }
+      },
+      "industry_benchmarks": {
+        "average": 15.0,
+        "top_25_percent": 5.0,
+        "top_10_percent": 1.0
+      },
+      "iris_target": 1.0
+    },
+    "cyclomatic_complexity": {
+      "display_name": "Cyclomatic Complexity",
+      "description": "Number of linearly independent paths through source code. Higher values mean harder to test and understand.",
+      "formula": "E - N + 2P (where E=edges, N=nodes, P=connected components in control flow graph). In practice: 1 + number of decision points (if, else, for, while, case, catch, &&, ||, ternary)",
+      "unit": "per function / method",
+      "collection_method": "Use radon (Python), lizard (multi-language), gocyclo (Go), eslint complexity plugin (JS/TS), NPath/SonarQube (Java).",
+      "aggregation": "Report per function (max and average) and per module (average)",
+      "thresholds": {
+        "low": { "max": 10, "label": "Simple", "action": "Ideal — maintain" },
+        "moderate": { "min": 10, "max": 20, "label": "Moderate", "action": "Monitor — consider refactoring when next touching" },
+        "high": { "min": 20, "max": 50, "label": "Complex", "action": "Refactor — split into smaller functions" },
+        "very_high": { "min": 50, "label": "Unmaintainable", "action": "Critical refactoring required" }
+      },
+      "iris_target": 10
+    },
+    "cognitive_complexity": {
+      "display_name": "Cognitive Complexity",
+      "description": "Measures how difficult code is for a human to understand, penalizing nesting more heavily than cyclomatic complexity.",
+      "formula": "Sum of: +1 for each control structure (if/else/loop/switch), +1 per nesting level for nested structures, +1 for logical operators in compound conditions, +1 for recursion calls.",
+      "unit": "per function / method",
+      "collection_method": "SonarQube cognitive complexity metric, or manual calculation following the formula.",
+      "thresholds": {
+        "low": { "max": 15, "label": "Easy to read", "action": "Maintain" },
+        "moderate": { "min": 15, "max": 30, "label": "Moderate", "action": "Consider simplification" },
+        "high": { "min": 30, "label": "Hard to understand", "action": "Refactor into smaller, named units" }
+      },
+      "iris_target": 15
+    },
+    "complexity_score": {
+      "display_name": "Complexity Score (Weighted)",
+      "description": "Composite complexity metric combining cyclomatic and cognitive complexity with weights that balance mathematical paths and human readability.",
+      "formula": "(cyclomatic_complexity * 0.6) + (cognitive_complexity * 0.4)",
+      "unit": "weighted index per function (report average across codebase)",
+      "collection_method": "Calculate cyclomatic and cognitive separately, then apply weights.",
+      "thresholds": {
+        "excellent": { "max": 12, "label": "Excellent", "action": "No action needed" },
+        "good": { "min": 12, "max": 20, "label": "Good", "action": "Opportunity for improvement when touching" },
+        "acceptable": { "min": 20, "max": 35, "label": "Acceptable but flagged", "action": "Schedule refactoring iteration" },
+        "poor": { "min": 35, "label": "Poor", "action": "Immediate refactoring required" }
+      },
+      "iris_target": 12
+    },
+    "test_coverage": {
+      "display_name": "Test Coverage",
+      "description": "Percentage of source code exercised by automated tests. IRIS requires line coverage at minimum, branch coverage preferred.",
+      "formula": "(lines_covered_by_tests / total_executable_lines) * 100",
+      "unit": "percentage (0–100)",
+      "collection_method": "Run the test suite with coverage instrumentation enabled. Report line coverage; branch coverage if available.",
+      "coverage_types": {
+        "line": "Each executable line executed at least once",
+        "branch": "Each branch of conditional statements taken at least once (preferred)",
+        "function": "Each function/method called at least once",
+        "path": "All possible execution paths covered (impractical for most codebases)"
+      },
+      "thresholds": {
+        "target": { "min": 99, "label": "Target", "action": "Maintain — do not allow decrease" },
+        "high": { "min": 90, "max": 99, "label": "High", "action": "Improve to reach target" },
+        "medium": { "min": 75, "max": 90, "label": "Medium", "action": "Significant improvement needed" },
+        "low": { "max": 75, "label": "Low", "action": "Critical — write tests immediately" },
+        "absent": { "max": 0, "label": "No tests", "action": "Emergency — establish test infrastructure first" }
+      },
+      "iris_target": 99
+    },
+    "coverage_gap": {
+      "display_name": "Coverage Gap",
+      "description": "Distance from current coverage to the 99% target. Directly indicates how much work remains on test coverage.",
+      "formula": "99 - test_coverage",
+      "unit": "percentage points (negative means above target)",
+      "collection_method": "Derived from test_coverage metric.",
+      "thresholds": {
+        "closed": { "max": 0, "label": "Target met or exceeded", "action": "Monitor for regression" },
+        "small": { "min": 0, "max": 5, "label": "Small gap", "action": "Address in current cycle" },
+        "medium": { "min": 5, "max": 20, "label": "Medium gap", "action": "Dedicate 1–2 iterations to coverage" },
+        "large": { "min": 20, "label": "Large gap", "action": "Coverage must be primary focus of next cycle" }
+      },
+      "iris_target": 0
+    },
+    "tech_debt_ratio": {
+      "display_name": "Technical Debt Ratio",
+      "description": "Estimated ratio of the cost to fix existing debt versus the cost to rebuild. Higher ratio = more debt accumulated.",
+      "formula": "(estimated_remediation_hours / estimated_development_hours) * 100",
+      "unit": "percentage",
+      "estimation_method": "For each CRITICAL + IMPROVABLE finding: estimate hours to fix. Sum all fix hours. Estimate total development hours for the codebase (LOC / average_LOC_per_hour, typically 50–100 LOC/hour). Apply formula.",
+      "thresholds": {
+        "healthy": { "max": 5, "label": "Healthy", "action": "Continue current practices" },
+        "manageable": { "min": 5, "max": 10, "label": "Manageable", "action": "Schedule debt repayment in roadmap" },
+        "critical": { "min": 10, "max": 20, "label": "Critical", "action": "Dedicate sprint to debt reduction" },
+        "unstable": { "min": 20, "label": "Unstable", "action": "Consider architectural reset for affected modules" }
+      },
+      "iris_target": 5
+    },
+    "architectural_health_index": {
+      "display_name": "Architectural Health Index",
+      "description": "Composite score (0–100) measuring the structural quality of the codebase across four dimensions.",
+      "formula": "(coupling_score * 0.25) + (cohesion_score * 0.25) + (solid_score * 0.25) + (duplication_score * 0.25)",
+      "unit": "index 0–100 (higher is better)",
+      "components": {
+        "coupling_score": {
+          "description": "Inverse of average afferent + efferent coupling. Score = 100 - (average_cross_module_dependencies * 5). Minimum 0.",
+          "ideal": "Low — fewer cross-module dependencies"
+        },
+        "cohesion_score": {
+          "description": "Percentage of modules where all public methods relate to a single concept. Score = (cohesive_modules / total_modules) * 100.",
+          "ideal": "High — every module has a clear, single purpose"
+        },
+        "solid_score": {
+          "description": "Score = 100 - (solid_violations_count * 10). Minimum 0. Violations: classes with >1 responsibility (SRP), inheritance misuse (LSP), fat interfaces (ISP), direct concrete dependencies (DIP).",
+          "ideal": "Zero violations"
+        },
+        "duplication_score": {
+          "description": "Score = 100 - (duplicated_code_percentage * 2). Minimum 0. Duplicated code = identical or near-identical blocks of 6+ lines appearing more than once.",
+          "ideal": "Zero duplication"
+        }
+      },
+      "thresholds": {
+        "excellent": { "min": 90, "label": "Excellent architecture", "action": "Maintain — minimal intervention needed" },
+        "good": { "min": 75, "max": 90, "label": "Good", "action": "Minor improvements in next cycles" },
+        "needs_attention": { "min": 60, "max": 75, "label": "Needs attention", "action": "Schedule architectural iteration" },
+        "critical": { "max": 60, "label": "Critical", "action": "Architectural refactoring is blocking other work" }
+      },
+      "iris_target": 90
+    }
+  },
+  "composite_health_report": {
+    "description": "Summary view combining all metrics into a single health assessment",
+    "calculation": "Each metric rated: Excellent=4, Good=3, Acceptable=2, Poor=1. Average of all ratings.",
+    "ratings": {
+      "4.0": "Elite — top 5% of codebases",
+      "3.0_to_3.9": "Professional — production-ready",
+      "2.0_to_2.9": "Developing — acceptable with active improvement",
+      "1.0_to_1.9": "Critical — significant investment required"
+    }
+  },
+  "measurement_frequency": {
+    "per_iteration": ["defect_density", "test_coverage", "coverage_gap"],
+    "per_cycle": ["complexity_score", "tech_debt_ratio", "architectural_health_index"],
+    "monitoring_mode": ["test_coverage", "coverage_gap", "defect_density"]
+  }
+}

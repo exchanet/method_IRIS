@@ -1,0 +1,260 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/exchanet/method_iris/schemas/handoff-input.json",
+  "title": "IRIS Handoff Input",
+  "description": "Schema for IRIS_INPUT.json — the structured context passed to IRIS when activated from another method (PDCA-T, Enterprise Builder, Modular Design) or when resuming a cycle.",
+  "version": "2.1.0",
+  "type": "object",
+  "required": ["schema_version", "source_method", "trigger_reason", "context", "timestamp"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Version of this schema. Must match the IRIS version this file was created for.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "example": "2.1.0"
+    },
+    "source_method": {
+      "type": "string",
+      "description": "Which method or trigger is activating IRIS.",
+      "enum": [
+        "standalone",
+        "pdca-t",
+        "enterprise-builder",
+        "modular-design",
+        "monitoring",
+        "manual"
+      ]
+    },
+    "trigger_reason": {
+      "type": "string",
+      "description": "Why IRIS is being activated.",
+      "enum": [
+        "initial-analysis",
+        "coverage-escalation",
+        "post-delivery-monitoring",
+        "architecture-health-check",
+        "scheduled-monitoring",
+        "degradation-detected",
+        "manual-request",
+        "cycle-continuation"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "description": "Repository and project context.",
+      "required": ["repository_path"],
+      "additionalProperties": false,
+      "properties": {
+        "repository_path": {
+          "type": "string",
+          "description": "Absolute or relative path to the repository root."
+        },
+        "scope": {
+          "type": "string",
+          "description": "Specific path or module to focus on. If absent, IRIS analyzes the full repository.",
+          "default": "."
+        },
+        "project_name": {
+          "type": "string",
+          "description": "Human-readable project name for reporting."
+        },
+        "previous_cycle_number": {
+          "type": "integer",
+          "description": "Number of the last completed IRIS cycle. 0 if this is the first cycle.",
+          "minimum": 0,
+          "default": 0
+        },
+        "iris_log_path": {
+          "type": "string",
+          "description": "Path to the IRIS_LOG.md file if it exists. IRIS will load it for historical context.",
+          "default": "IRIS_LOG.md"
+        }
+      }
+    },
+    "current_metrics": {
+      "type": "object",
+      "description": "Known metrics before IRIS activates. Provided by the source method. If absent, IRIS establishes baseline in Fase 2.",
+      "additionalProperties": false,
+      "properties": {
+        "defect_density": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Defects per 1000 LOC."
+        },
+        "test_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of code covered by tests."
+        },
+        "complexity_score": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Weighted complexity index."
+        },
+        "tech_debt_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Technical debt as percentage of development cost."
+        },
+        "architectural_health_index": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Architectural quality score 0–100."
+        }
+      }
+    },
+    "escalation_data": {
+      "type": "object",
+      "description": "Present when trigger_reason is 'coverage-escalation' (from PDCA-T). Contains details about what was attempted and failed.",
+      "additionalProperties": false,
+      "properties": {
+        "attempts_made": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of PDCA-T cycles attempted before escalating."
+        },
+        "target_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Coverage target that could not be reached."
+        },
+        "achieved_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Best coverage achieved across all attempts."
+        },
+        "failure_reason": {
+          "type": "string",
+          "description": "Human-readable explanation of why coverage target could not be reached."
+        },
+        "problematic_modules": {
+          "type": "array",
+          "description": "List of modules where coverage is lowest or where the blocker exists.",
+          "items": {
+            "type": "object",
+            "required": ["path", "coverage"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500,
+                "pattern": "^[^/\\\\].*$",
+                "not": { "pattern": "\\.\\." },
+                "description": "Module path relative to project root; no path traversal"
+              },
+              "coverage": { "type": "number", "minimum": 0, "maximum": 100 },
+              "issue": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "enterprise_context": {
+      "type": "object",
+      "description": "Present when source_method is 'enterprise-builder'. Contains the Fase 8 delivery context.",
+      "additionalProperties": false,
+      "properties": {
+        "delivery_report_path": {
+          "type": "string",
+          "description": "Path to the Enterprise Builder Fase 8 delivery report."
+        },
+        "adr_directory": {
+          "type": "string",
+          "description": "Path to the Architecture Decision Records directory."
+        },
+        "nfr_targets": {
+          "type": "object",
+          "description": "Non-functional requirements from Enterprise Builder Fase 2.",
+          "properties": {
+            "coverage_target": { "type": "number" },
+            "latency_p95_ms": { "type": "number" },
+            "availability_sla": { "type": "string" },
+            "compliance_standards": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "residual_risks": {
+          "type": "array",
+          "description": "Risks from the Enterprise Builder Risk Matrix not yet mitigated.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "architecture_context": {
+      "type": "object",
+      "description": "Present when source_method is 'modular-design'. Contains Core/Pack health data.",
+      "additionalProperties": false,
+      "properties": {
+        "core_path": { "type": "string" },
+        "packs_path": { "type": "string" },
+        "circular_dependencies": {
+          "type": "array",
+          "description": "Detected circular dependencies between packs.",
+          "items": { "type": "string" }
+        },
+        "contract_violations": {
+          "type": "array",
+          "description": "Core/Pack contract violations detected.",
+          "items": { "type": "string" }
+        },
+        "coupling_metrics": {
+          "type": "object",
+          "properties": {
+            "average_afferent_coupling": { "type": "number" },
+            "average_efferent_coupling": { "type": "number" },
+            "instability_index": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Relevant files and documents passed with the handoff.",
+      "items": {
+        "type": "object",
+        "required": ["type", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["source-code", "test-file", "documentation", "configuration", "adr", "delivery-report", "test-results", "coverage-report"]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "pattern": "^[^/\\\\].*$",
+            "not": { "pattern": "\\.\\." },
+            "description": "Path relative to project root only; no path traversal (no .., no leading / or \\)"
+          },
+          "description": { "type": "string" },
+          "criticality": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          }
+        }
+      }
+    },
+    "requested_focus": {
+      "type": "array",
+      "description": "Optional list of areas to prioritize in IRIS analysis. IRIS adapts its analysis but does not skip other areas.",
+      "items": {
+        "type": "string",
+        "enum": ["security", "performance", "architecture", "test-coverage", "documentation", "technical-debt"]
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this handoff was created."
+    },
+    "requested_by": {
+      "type": "string",
+      "description": "Identifier of who or what triggered this handoff (username, CI system name, etc.)."
+    }
+  }
+}

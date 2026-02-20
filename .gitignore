@@ -1,0 +1,95 @@
+# ================================
+# Method IRIS — .gitignore
+# ================================
+
+# ──── Internal audit and control (do not publish) ─────────────────────
+IRIS_V2.1_*.md
+*_AUDIT_*.md
+*AUDIT*.md
+*_REPORT_*.md
+*_REPORT*.md
+*ZERO_ERRORS*.md
+*FULL_AUDIT*.md
+*SECURITY_AUDIT*.md
+
+# ──── Environment and secrets ─────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.production
+*.key
+*.pem
+*.p12
+secrets/
+credentials/
+
+# ──── IDE and editor ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Cursor local (do not exclude .cursor/rules or .cursor/skills — they are part of the method)
+.cursor/chat/
+.cursor/projects/
+.cursor/.cursorrules
+
+# ──── OS ──────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+.directory
+.Trash-*
+
+# ──── Temporary and logs ─────────────────────────────────────────────
+*.tmp
+*.temp
+*.log
+*.cache
+.cache/
+tmp/
+temp/
+
+# ──── Node / build (if scripts are added later) ───────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+out/
+*.tsbuildinfo
+coverage/
+.nyc_output/
+*.lcov
+reports/
+test-results/
+junit.xml
+*.junit.xml
+
+# ──── Backups and archives ───────────────────────────────────────────
+*.bak
+*.backup
+*.old
+*~.md
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# ──── User installs in other projects (when method is cloned into a target) ─
+# Uncomment if you want to ignore these when using this repo as a subfolder:
+# .cursor-install/
+# .method-install/

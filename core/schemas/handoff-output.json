@@ -1,0 +1,292 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/exchanet/method_iris/schemas/handoff-output.json",
+  "title": "IRIS Handoff Output",
+  "description": "Schema for IRIS_OUTPUT.json — the structured result produced by IRIS when completing a cycle and returning control to another method, or when logging cycle results.",
+  "version": "2.1.0",
+  "type": "object",
+  "required": ["schema_version", "cycle_number", "target_method", "next_action", "metrics_before", "metrics_after", "improvements_made", "timestamp"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "example": "2.1.0"
+    },
+    "cycle_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Which IRIS cycle this output represents."
+    },
+    "target_method": {
+      "type": "string",
+      "description": "Which method should receive this output (or 'none' for standalone completion).",
+      "enum": [
+        "none",
+        "pdca-t",
+        "enterprise-builder",
+        "modular-design",
+        "iris-next-cycle",
+        "iris-monitoring"
+      ]
+    },
+    "next_action": {
+      "type": "string",
+      "description": "What should happen after this IRIS cycle.",
+      "enum": [
+        "complete",
+        "next-iris-cycle",
+        "monitor",
+        "handoff-to-pdca-t",
+        "handoff-to-enterprise-builder",
+        "handoff-to-modular-design",
+        "manual-review-required"
+      ]
+    },
+    "metrics_before": {
+      "type": "object",
+      "description": "Metrics measured at the start of this cycle (from IRIS_INPUT.json or established in Fase 1/2).",
+      "required": ["defect_density", "test_coverage", "complexity_score"],
+      "properties": {
+        "defect_density": { "type": "number", "minimum": 0 },
+        "test_coverage": { "type": "number", "minimum": 0, "maximum": 100 },
+        "complexity_score": { "type": "number", "minimum": 0 },
+        "tech_debt_ratio": { "type": "number", "minimum": 0 },
+        "architectural_health_index": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "metrics_after": {
+      "type": "object",
+      "description": "Metrics measured at the end of this cycle (Fase 5 verification).",
+      "required": ["defect_density", "test_coverage", "complexity_score"],
+      "properties": {
+        "defect_density": { "type": "number", "minimum": 0 },
+        "test_coverage": { "type": "number", "minimum": 0, "maximum": 100 },
+        "complexity_score": { "type": "number", "minimum": 0 },
+        "tech_debt_ratio": { "type": "number", "minimum": 0 },
+        "architectural_health_index": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "metrics_delta": {
+      "type": "object",
+      "description": "Computed differences: metrics_after - metrics_before. Negative = improved for density/complexity/debt. Positive = improved for coverage/AHI.",
+      "properties": {
+        "defect_density_delta": { "type": "number" },
+        "test_coverage_delta": { "type": "number" },
+        "complexity_score_delta": { "type": "number" },
+        "tech_debt_ratio_delta": { "type": "number" },
+        "architectural_health_index_delta": { "type": "number" }
+      }
+    },
+    "improvements_made": {
+      "type": "array",
+      "description": "List of improvements implemented in this cycle.",
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "description", "files_affected"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^IMP-[0-9]{4}$",
+            "description": "Improvement identifier. Format: IMP-NNNN.",
+            "example": "IMP-0001"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["security", "performance", "maintainability", "architecture", "test-coverage", "documentation", "bug-fix"]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "description": "What was improved and why."
+          },
+          "files_affected": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 500 },
+            "description": "List of file paths modified."
+          },
+          "lines_changed": {
+            "type": "object",
+            "properties": {
+              "added": { "type": "integer", "minimum": 0 },
+              "removed": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "severity_resolved": {
+            "type": "string",
+            "enum": ["critical", "improvable", "optimizable", "cosmetic"],
+            "description": "Severity category of the finding this improvement addressed."
+          },
+          "coverage_delta": {
+            "type": "number",
+            "description": "Change in test coverage caused by this improvement (in percentage points)."
+          },
+          "iteration": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Which iteration within this cycle this improvement belongs to."
+          }
+        }
+      }
+    },
+    "remaining_issues": {
+      "type": "array",
+      "description": "Issues identified in Fase 2 that were NOT addressed in this cycle, with reason.",
+      "items": {
+        "type": "object",
+        "required": ["description", "severity", "reason_deferred"],
+        "properties": {
+          "description": { "type": "string", "maxLength": 2000 },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "improvable", "optimizable", "cosmetic"]
+          },
+          "reason_deferred": { "type": "string", "maxLength": 2000 },
+          "suggested_next_action": { "type": "string", "maxLength": 500 }
+        }
+      }
+    },
+    "handoff_context": {
+      "type": "object",
+      "description": "Context for the receiving method to act on immediately.",
+      "additionalProperties": false,
+      "properties": {
+        "focus_areas": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What the receiving method should prioritize first."
+        },
+        "avoided_pitfalls": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Patterns or approaches that were tried and failed — receiving method should avoid."
+        },
+        "urgent_attention": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Items requiring immediate attention, even before the receiving method's normal flow."
+        },
+        "architectural_notes": {
+          "type": "string",
+          "description": "Any architectural context relevant to the receiving method."
+        }
+      }
+    },
+    "pdca_t_handoff": {
+      "type": "object",
+      "description": "Present when target_method is 'pdca-t'. Contains specific context for resuming PDCA-T.",
+      "additionalProperties": false,
+      "properties": {
+        "refactored_modules": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Modules IRIS refactored to make them testable. PDCA-T should re-attempt coverage on these."
+        },
+        "new_interfaces": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "New interfaces/abstractions introduced that PDCA-T should mock in tests."
+        },
+        "expected_coverage_after_pdca": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "IRIS's estimate of achievable coverage now that code has been refactored."
+        }
+      }
+    },
+    "enterprise_builder_feedback": {
+      "type": "object",
+      "description": "Present when target_method is 'enterprise-builder'. Feedback for the next planning cycle.",
+      "additionalProperties": false,
+      "properties": {
+        "nfr_adjustments_suggested": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "NFRs that should be adjusted based on findings (e.g., coverage target, latency after profiling)."
+        },
+        "new_risks_identified": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "New risks discovered during IRIS analysis not in the original Risk Matrix."
+        },
+        "adr_updates_recommended": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "ADRs that should be revisited based on implementation findings."
+        }
+      }
+    },
+    "modular_design_feedback": {
+      "type": "object",
+      "description": "Present when target_method is 'modular-design'. Architectural feedback.",
+      "additionalProperties": false,
+      "properties": {
+        "resolved_violations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Contract violations or circular dependencies that were resolved."
+        },
+        "new_pack_suggestions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "New packs suggested based on discovered domain boundaries."
+        },
+        "core_contamination_resolved": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Domain logic removed from Core and moved to appropriate packs."
+        }
+      }
+    },
+    "cycle_stats": {
+      "type": "object",
+      "description": "Statistics about this cycle's execution.",
+      "properties": {
+        "total_iterations": { "type": "integer", "minimum": 0 },
+        "files_analyzed": { "type": "integer", "minimum": 0 },
+        "files_modified": { "type": "integer", "minimum": 0 },
+        "total_loc_added": { "type": "integer", "minimum": 0 },
+        "total_loc_removed": { "type": "integer", "minimum": 0 },
+        "critical_issues_resolved": { "type": "integer", "minimum": 0 },
+        "improvable_issues_resolved": { "type": "integer", "minimum": 0 },
+        "duration_minutes": { "type": "number", "minimum": 0 }
+      }
+    },
+    "lessons_learned": {
+      "type": "array",
+      "description": "Key learnings from this cycle to improve future cycles.",
+      "items": { "type": "string" }
+    },
+    "next_cycle_triggers": {
+      "type": "object",
+      "description": "Conditions that should trigger the next IRIS cycle.",
+      "properties": {
+        "scheduled_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Date for next scheduled analysis."
+        },
+        "coverage_threshold": {
+          "type": "number",
+          "description": "Coverage below this value triggers immediate new cycle."
+        },
+        "complexity_threshold": {
+          "type": "number",
+          "description": "Complexity above this value triggers new cycle."
+        },
+        "manual_conditions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Human-readable conditions that should trigger a new cycle."
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this cycle completed."
+    }
+  }
+}
