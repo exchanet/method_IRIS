@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Multi-Agent](https://img.shields.io/badge/agents-5%20platforms-purple)](agents/)
 
-**Version:** 2.1.0 | **License:** MIT | **Language:** EN / ES
+**Version:** 2.1.0 | **License:** MIT | **Language:** [EN](README.md) / [ES](README.es.md)
 
 **Author:** Francisco J Bernades  
 **GitHub:** [@exchanet](https://github.com/exchanet)  
@@ -278,4 +278,4 @@ GitHub: [@exchanet](https://github.com/exchanet)
 
 ---
 
-See [README.es.md](README.es.md) for Spanish documentation.
+**Read in Spanish / Leer en español:** [README.es.md](README.es.md)
